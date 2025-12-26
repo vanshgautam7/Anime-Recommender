@@ -387,7 +387,21 @@ def get_recommender_v3():
     recommender = _get_recommender_system_fresh()
     
     if recommender is None:
-         st.error(f"Data files not found.")
+         st.error("Data files not found.")
+         
+         # --- DEBUGGING FOR DEPLOYMENT ---
+         import os
+         current_dir = os.path.dirname(os.path.abspath(__file__))
+         st.write(f"Current Dir: {current_dir}")
+         st.write(f"Files in Current Dir: {os.listdir(current_dir)}")
+         
+         data_dir = os.path.join(current_dir, "data")
+         if os.path.exists(data_dir):
+             st.write(f"Files in data/: {os.listdir(data_dir)}")
+         else:
+             st.error(f"Data directory not found at: {data_dir}")
+         # --------------------------------
+         
          return None
 
     return recommender
