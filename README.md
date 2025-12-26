@@ -58,6 +58,11 @@ Jikan API
 
 HTML & CSS (Custom Styling)
 
+⚠️ Dataset Note:
+The recommendation model is trained on a historical anime dataset.
+Live metadata (images, ratings, popularity) is fetched in real time via MyAnimeList API.
+
+
 🧩 How It Works
 1️⃣ Collaborative Filtering
 
