@@ -292,7 +292,7 @@ def fetch_anime_image(anime_data):
     else:
          url = f"https://api.jikan.moe/v4/anime?q={anime_name}&limit=1"
         
-    def _make_request(retry=False):
+    def _make_request(retries=3):
         try:
             # Jitter to preventing thundering herd
             time.sleep(random.uniform(0.1, 0.4)) 
@@ -310,10 +310,11 @@ def fetch_anime_image(anime_data):
                         "title": item['title'],
                         "mal_id": item['mal_id']
                     }
-            elif response.status_code == 429 and not retry:
-                # Hit rate limit? Wait and retry once
-                time.sleep(2.0)
-                return _make_request(retry=True)
+            elif response.status_code == 429 and retries > 0:
+                # Hit rate limit? Exponential backoff
+                wait_time = 2.0 * (4 - retries) # 2s, 4s, 6s
+                time.sleep(wait_time)
+                return _make_request(retries=retries-1)
                 
         except Exception:
             pass
