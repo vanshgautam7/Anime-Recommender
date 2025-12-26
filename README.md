@@ -1,29 +1,112 @@
-# Anime-Recommender
-A Content Based Anime Recommendation system using Machine Learning.
-Welcome to the Anime Recommendation System! This project is designed to help anime fans find new shows to watch based on their preferences and favorite genres.
+🎬 Aniora — AI-Powered Anime Recommendation System
 
-Overview
+Discover your next anime obsession with intelligent recommendations and a cinematic UI.
 
-This system uses a content-based filtering approach to recommend anime. By analyzing the genres, types, and other metadata of anime shows, it suggests titles that are similar to what you already like. The system can also recommend top anime in specific categories.
+Aniora is an end-to-end anime recommendation platform that combines machine learning, real-time anime data, and a premium Apple TV–inspired interface to help users find anime they’ll genuinely love.
 
-Features
+✨ Key Features
 
-Load and Preprocess Data: Easily load anime and rating data from CSV files and preprocess them.
+🎯 Hybrid Recommendation Engine
 
-Category-Based Recommendations: Get top anime suggestions in any genre or category of your choice.
+✨ Collaborative Filtering (user–anime similarity)
 
-Content Similarity Model: Find anime similar to a given title using TF-IDF and cosine similarity.
+📚 Content-Based Filtering (genre & metadata)
 
-Interactive Search: Use the interactive mode to explore categories and get recommendations.
+🔁 Smart fallback strategy for cold-start anime
 
-How to Use
+🧠 Explainable AI
 
-Load Data: Provide paths to your anime and rating CSV files.
+Clear labels showing which model generated the recommendation
 
-Preprocess: The system will clean and prepare the data.
+Transparent and interview-friendly logic
 
-Get Recommendations: Choose a category or a specific anime title and get suggestions tailored to your taste.
+🎨 Premium UI (Apple TV–Inspired)
 
-Example
+Dark cinematic theme
 
-To get started, simply load your data and run the interactive category selection. You’ll be able to see available genres and get top recommendations right away.
+Interactive anime cards
+
+Smooth hover effects
+
+Clean, distraction-free layout
+
+🖼️ Live Anime Posters
+
+Integrated with Jikan API (MyAnimeList)
+
+Fetches real-time anime images & metadata
+
+⚡ Optimized Performance
+
+Cached models and API calls using Streamlit
+
+Fast response even with large datasets
+
+🛠️ Tech Stack
+
+Python
+
+Streamlit
+
+Pandas & NumPy
+
+SciPy (Sparse Matrices)
+
+Scikit-Learn
+
+Jikan API
+
+HTML & CSS (Custom Styling)
+
+🧩 How It Works
+1️⃣ Collaborative Filtering
+
+Users who have similar anime preferences are grouped together using a User × Anime sparse matrix. Recommendations are generated based on what similar users enjoyed.
+
+2️⃣ Content-Based Filtering
+
+For anime with insufficient user ratings, recommendations fall back to genre and metadata similarity.
+
+3️⃣ Hybrid Strategy
+
+The system automatically chooses the best model and displays a badge:
+
+✨ Collaborative Intelligence
+
+📚 Content-Based Match
+
+📸 Screenshots
+
+<img width="1919" height="979" alt="image" src="https://github.com/user-attachments/assets/e7633106-963a-46af-a4cb-d0a47219edfd" />
+
+
+<img width="1919" height="974" alt="image" src="https://github.com/user-attachments/assets/4b00fcb5-7834-4379-bd8f-dfde3d03c4d7" />
+
+
+<img width="1919" height="978" alt="image" src="https://github.com/user-attachments/assets/e8bf92a2-b1cd-4135-b24c-bf4a02b670c4" />
+
+
+🚀 Getting Started
+pip install -r requirements.txt
+streamlit run app.py
+
+
+Open in browser:
+
+http://localhost:8501
+
+📁 Project Structure
+Anime-Recommender/
+├── app.py
+├── anime_upgrade.py
+├── anime.csv
+├── rating.csv
+├── hero_bg.jpg
+├── README.md
+├── changelog.md
+├── LICENSE
+├── .gitignore
+
+
+
+
