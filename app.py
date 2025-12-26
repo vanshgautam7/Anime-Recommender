@@ -286,39 +286,47 @@ def fetch_anime_image(anime_data):
     anime_id = anime_data.get('id')
     anime_name = anime_data.get('name')
     
-    # 1. ID Lookup (Best)
+    # Generate URL
     if anime_id and str(anime_id) != 'nan':
-        url = f"https://api.jikan.moe/v4/anime/{anime_id}"
+         url = f"https://api.jikan.moe/v4/anime/{anime_id}"
     else:
-        # 2. Name Lookup (Fallback)
-        url = f"https://api.jikan.moe/v4/anime?q={anime_name}&limit=1"
+         url = f"https://api.jikan.moe/v4/anime?q={anime_name}&limit=1"
         
-    try:
-        # Rate limit handling is done in the worker pool, but safety sleep here
-        time.sleep(0.1) 
-        response = requests.get(url, timeout=4)
-        
-        if response.status_code == 200:
-            data = response.json()
-            # Handle different response structures for ID vs Search
-            item = data['data'] if 'data' in data else None
+    def _make_request(retry=False):
+        try:
+            # Jitter to preventing thundering herd
+            time.sleep(random.uniform(0.1, 0.4)) 
+            response = requests.get(url, timeout=4)
             
-            # Search endpoint returns a list in 'data'
-            if isinstance(item, list):
-                item = item[0] if item else None
+            if response.status_code == 200:
+                data = response.json()
+                item = data['data'] if 'data' in data else None
+                if isinstance(item, list):
+                    item = item[0] if item else None
+                    
+                if item:
+                    return {
+                        "image": item['images']['jpg']['large_image_url'],
+                        "title": item['title'],
+                        "mal_id": item['mal_id']
+                    }
+            elif response.status_code == 429 and not retry:
+                # Hit rate limit? Wait and retry once
+                time.sleep(2.0)
+                return _make_request(retry=True)
                 
-            if item:
-                return {
-                    "image": item['images']['jpg']['large_image_url'],
-                    "title": item['title'],
-                    "mal_id": item['mal_id']
-                }
-    except Exception:
-        pass
+        except Exception:
+            pass
+        return None
+
+    # Try to fetch
+    result = _make_request()
+    if result:
+        return result
 
     # Fallback
     return {
-        "image": "https://via.placeholder.com/225x320/1a1a1a/cccccc?text=No+Image",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/330px-No-Image-Placeholder.svg.png", # More reliable placeholder
         "title": anime_name,
         "mal_id": None
     }
@@ -326,12 +334,12 @@ def fetch_anime_image(anime_data):
 def fetch_images_parallel(recommendations):
     """
     Fetch all images in parallel.
-    Respects Jikan API limit (approx 3 req/sec) using max_workers=3
+    Reduced to max_workers=2 to be safer with API limits.
     """
     results = [None] * len(recommendations)
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        # Create a dict of {future: index} to Map results back to correct order
+    # We use 2 workers to stay under the 3 req/sec limit reliably
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         future_to_index = {
             executor.submit(fetch_anime_image, anime): i 
             for i, anime in enumerate(recommendations)
@@ -344,7 +352,7 @@ def fetch_images_parallel(recommendations):
                 results[index] = data
             except Exception:
                 results[index] = {
-                    "image": "https://via.placeholder.com/225x320/1a1a1a/cccccc?text=Error",
+                    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/330px-No-Image-Placeholder.svg.png",
                     "title": recommendations[index]['name']
                 }
                 
