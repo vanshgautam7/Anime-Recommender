@@ -4,6 +4,7 @@ import os
 import requests
 import time
 import base64
+import concurrent.futures
 from anime_upgrade import AnimeRecommendationSystem
 
 # Page Configuration
@@ -275,17 +276,38 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- Jikan API Integration ---
+# --- Jikan API Integration ---
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_anime_image(anime_name):
-    """Fetch structured anime data from Jikan API"""
-    url = f"https://api.jikan.moe/v4/anime?q={anime_name}&limit=1"
+def fetch_anime_image(anime_data):
+    """
+    Fetch anime image. Prioritizes ID lookup, falls back to name.
+    anime_data is a dict with 'id' and 'name'.
+    """
+    anime_id = anime_data.get('id')
+    anime_name = anime_data.get('name')
+    
+    # 1. ID Lookup (Best)
+    if anime_id and str(anime_id) != 'nan':
+        url = f"https://api.jikan.moe/v4/anime/{anime_id}"
+    else:
+        # 2. Name Lookup (Fallback)
+        url = f"https://api.jikan.moe/v4/anime?q={anime_name}&limit=1"
+        
     try:
-        time.sleep(0.35)  # Throttle requests
-        response = requests.get(url, timeout=3)
+        # Rate limit handling is done in the worker pool, but safety sleep here
+        time.sleep(0.1) 
+        response = requests.get(url, timeout=4)
+        
         if response.status_code == 200:
             data = response.json()
-            if data['data']:
-                item = data['data'][0]
+            # Handle different response structures for ID vs Search
+            item = data['data'] if 'data' in data else None
+            
+            # Search endpoint returns a list in 'data'
+            if isinstance(item, list):
+                item = item[0] if item else None
+                
+            if item:
                 return {
                     "image": item['images']['jpg']['large_image_url'],
                     "title": item['title'],
@@ -293,12 +315,40 @@ def fetch_anime_image(anime_name):
                 }
     except Exception:
         pass
+
     # Fallback
     return {
         "image": "https://via.placeholder.com/225x320/1a1a1a/cccccc?text=No+Image",
         "title": anime_name,
         "mal_id": None
     }
+
+def fetch_images_parallel(recommendations):
+    """
+    Fetch all images in parallel.
+    Respects Jikan API limit (approx 3 req/sec) using max_workers=3
+    """
+    results = [None] * len(recommendations)
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        # Create a dict of {future: index} to Map results back to correct order
+        future_to_index = {
+            executor.submit(fetch_anime_image, anime): i 
+            for i, anime in enumerate(recommendations)
+        }
+        
+        for future in concurrent.futures.as_completed(future_to_index):
+            index = future_to_index[future]
+            try:
+                data = future.result()
+                results[index] = data
+            except Exception:
+                results[index] = {
+                    "image": "https://via.placeholder.com/225x320/1a1a1a/cccccc?text=Error",
+                    "title": recommendations[index]['name']
+                }
+                
+    return results
 
 
 import random
@@ -434,15 +484,22 @@ def render_movie_grid(recommendations, model_type=None):
     if model_type:
         st.markdown(badge_html, unsafe_allow_html=True)
     
+    # 1. Parallel Fetch (Fast!)
+    # We pass the full anime dicts (which have 'id' and 'name')
+    with st.spinner("Loading visuals..."):
+        image_data_list = fetch_images_parallel(recommendations)
+    
     # Grid Layout
     cols = st.columns(5) 
     for idx, anime in enumerate(recommendations):
         col_idx = idx % 5
         
         # Prepare Data
-        title = anime['name']
-        img_data = fetch_anime_image(title)
-        img_url = img_data['image']
+        # Retrieve pre-fetched image data
+        img_info = image_data_list[idx]
+        img_url = img_info['image']
+        title = img_info['title'] # Use API title if available, or fallback
+        
         rating = anime.get('rating', 'N/A')
         try:
             if rating != 'N/A':
