@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import warnings
+import os
 
 warnings.filterwarnings('ignore')
 
@@ -20,7 +21,7 @@ class AnimeRecommendationSystem:
         self.tfidf_matrix = None
         self.vectorizer = None # Lazy load
         
-    def load_data(self, anime_path, rating_path):
+    def load_data(self, anime_path, rating_path=None):
         """
         Load datasets with memory optimization.
         """
@@ -39,15 +40,19 @@ class AnimeRecommendationSystem:
         }
 
         self.anime_df = pd.read_csv(anime_path, dtype=anime_dtypes)
-        self.rating_df = pd.read_csv(rating_path, dtype=rating_dtypes, nrows=500000)
         
-        # Filter noise immediately to save RAM
-        # Remove users who didn't rate content (rating = -1)
-        self.rating_df = self.rating_df[self.rating_df['rating'] >= 0]
-        
-        # Keep only users with > 50 ratings (Quality over Quantity)
-        counts = self.rating_df['user_id'].value_counts()
-        self.rating_df = self.rating_df[self.rating_df['user_id'].isin(counts[counts > 50].index)]
+        if rating_path and os.path.exists(rating_path):
+            self.rating_df = pd.read_csv(rating_path, dtype=rating_dtypes, nrows=500000)
+            
+            # Filter noise immediately to save RAM
+            # Remove users who didn't rate content (rating = -1)
+            self.rating_df = self.rating_df[self.rating_df['rating'] >= 0]
+            
+            # Keep only users with > 50 ratings (Quality over Quantity)
+            counts = self.rating_df['user_id'].value_counts()
+            self.rating_df = self.rating_df[self.rating_df['user_id'].isin(counts[counts > 50].index)]
+        else:
+            self.rating_df = None
         
         # Optimize strings
         self.anime_df['name'] = self.anime_df['name'].astype('string')

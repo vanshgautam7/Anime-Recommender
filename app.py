@@ -320,15 +320,30 @@ ANIME_QUOTES = [
 @st.cache_resource(show_spinner=False)
 def _get_recommender_system_fresh():
     # Check for files
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    anime_path = os.path.join(current_dir, "anime.csv")
-    rating_path = os.path.join(current_dir, "rating.csv")
-    
-    if not os.path.exists(anime_path) or not os.path.exists(rating_path):
-        return None
 
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    anime_path = os.path.join(current_dir, "data", "anime.csv")
+    rating_path = os.path.join(current_dir, "rating.csv") # Assuming rating.csv is still in root or change to data if moved
+    
+    # If rating.csv might also be in data, check there too or just standardise
+    # For now, per instructions, we moved anime.csv to data/. rating.csv is large and user likely excluded it or it is in root.
+    # Let's check root first as per original, but if not found, check data/ just in case.
+    
+    if not os.path.exists(anime_path):
+        # Fallback to root just in case locally it wasn't moved yet or similar
+        anime_path_root = os.path.join(current_dir, "anime.csv")
+        if os.path.exists(anime_path_root):
+             anime_path = anime_path_root
+        else:
+             return None
+
+    # Flexible rating path
+    final_rating_path = None
+    if os.path.exists(rating_path):
+        final_rating_path = rating_path
+    
     sys = AnimeRecommendationSystem()
-    sys.load_data(anime_path, rating_path)
+    sys.load_data(anime_path, final_rating_path)
     sys.preprocess_data()
     sys.build_models()
     return sys
